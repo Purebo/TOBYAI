@@ -6,6 +6,12 @@ app = Flask(__name__)
 TOGETHER_API_KEY = "58bedad48b97a0b3e75916ddf975f00642ed68b29b4f91aafee697749e0e2682"
 TOGETHER_MODEL = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
 
+def format_message(message):
+    message = message.replace(". ", ".<br><br>")
+    message = message.replace("! ", "!<br><br>")
+    message = message.replace("? ", "?<br><br>")
+    return message
+
 @app.route("/")
 def home():
     return render_template("index.html")
