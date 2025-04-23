@@ -3,134 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toby AI</title>
+    <title>Toby AI Assistant</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f7fb;
-            color: #333;
-            margin: 0;
-            padding: 0;
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
         }
         .chat-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-            height: 90vh;
-            padding: 20px;
-        }
-        .chat-box {
-            width: 100%;
-            max-width: 600px;
-            background-color: #fff;
+            background-color: white;
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
             padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            max-height: 500px;
             overflow-y: auto;
-            max-height: 70vh;
         }
         .message {
-            padding: 10px 15px;
-            border-radius: 10px;
-            margin: 5px 0;
-            background-color: #ececec;
-            max-width: 90%;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
         }
-        .message.user {
-            background-color: #6fa3f7;
-            align-self: flex-end;
+        .user-message {
+            background-color: #e3f2fd;
+            text-align: right;
         }
-        .message.ai {
+        .ai-message {
             background-color: #f1f1f1;
-            align-self: flex-start;
         }
-        .input-container {
-            display: flex;
-            width: 100%;
-            max-width: 600px;
-            padding: 10px 0;
-        }
-        .input-box {
+        input[type="text"] {
             width: 80%;
             padding: 10px;
+            border: 1px solid #ddd;
             border-radius: 5px;
-            border: 1px solid #ccc;
             margin-right: 10px;
         }
-        .send-btn {
-            background-color: #6fa3f7;
+        button {
             padding: 10px 15px;
-            border-radius: 5px;
-            color: #fff;
-            cursor: pointer;
+            background-color: #2196F3;
+            color: white;
             border: none;
-        }
-        .toggle-theme {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background-color: #333;
-            color: #fff;
-            padding: 10px;
-            border-radius: 50%;
+            border-radius: 5px;
             cursor: pointer;
+        }
+        button:hover {
+            background-color: #0b7dda;
+        }
+        .loading {
+            display: none;
+            color: #666;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-
-<div class="chat-container">
-    <div class="chat-box" id="chat-box">
-        <!-- Messages will go here -->
+    <h1>Toby AI Assistant</h1>
+    
+    <div class="chat-container" id="chatBox"></div>
+    
+    <div>
+        <input type="text" id="userInput" placeholder="Type your message here...">
+        <button onclick="sendMessage()">Send</button>
     </div>
-    <div class="input-container">
-        <input type="text" class="input-box" id="user-input" placeholder="Type a message...">
-        <button class="send-btn" id="send-btn">Send</button>
-    </div>
-</div>
+    
+    <div class="loading" id="loadingIndicator">Thinking...</div>
 
-<button class="toggle-theme" id="toggle-theme">🌙</button>
+    <script>
+        // Add an initial greeting
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatBox = document.getElementById('chatBox');
+            const aiMessage = document.createElement('div');
+            aiMessage.className = 'message ai-message';
+            aiMessage.innerHTML = 'Hello! I\'m Toby AI. How can I help you today?';
+            chatBox.appendChild(aiMessage);
+        });
 
-<script>
-    const chatBox = document.getElementById("chat-box");
-    const userInput = document.getElementById("user-input");
-    const sendBtn = document.getElementById("send-btn");
-    const toggleTheme = document.getElementById("toggle-theme");
-
-    let darkMode = false;
-
-    const addMessage = (text, isUser) => {
-        const message = document.createElement("div");
-        message.classList.add("message");
-        message.classList.add(isUser ? "user" : "ai");
-        message.textContent = text;
-        chatBox.appendChild(message);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    };
-
-    sendBtn.addEventListener("click", () => {
-        const messageText = userInput.value;
-        if (messageText.trim()) {
-            addMessage(messageText, true);  // User message
-            userInput.value = "";
-            setTimeout(() => {
-                addMessage("Toby is thinking...", false);  // AI thinking message
-                setTimeout(() => {
-                    addMessage("Hello! How can I assist you?", false);  // Example response
-                }, 1000);
-            }, 500);
+        async function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const chatBox = document.getElementById('chatBox');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            
+            // Get user message
+            const userMessage = userInput.value.trim();
+            if (!userMessage) return;
+            
+            // Display user message
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message user-message';
+            userDiv.textContent = userMessage;
+            chatBox.appendChild(userDiv);
+            
+            // Clear input
+            userInput.value = '';
+            
+            // Show loading indicator
+            loadingIndicator.style.display = 'block';
+            
+            try {
+                // Send request to server
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: userMessage })
+                });
+                
+                const data = await response.json();
+                
+                // Display AI response
+                const aiDiv = document.createElement('div');
+                aiDiv.className = 'message ai-message';
+                aiDiv.innerHTML = data.reply;
+                chatBox.appendChild(aiDiv);
+                
+                // Scroll to bottom
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (error) {
+                console.error('Error:', error);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message ai-message';
+                errorDiv.textContent = 'Sorry, there was an error processing your request.';
+                chatBox.appendChild(errorDiv);
+            } finally {
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+            }
         }
-    });
-
-    // Dark/Light theme toggle
-    toggleTheme.addEventListener("click", () => {
-        darkMode = !darkMode;
-        document.body.style.backgroundColor = darkMode ? "#333" : "#f4f7fb";
-        document.body.style.color = darkMode ? "#fff" : "#333";
-        toggleTheme.textContent = darkMode ? "☀️" : "🌙";
-    });
-</script>
-
+        
+        // Allow sending message with Enter key
+        document.getElementById('userInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
 </body>
 </html>
