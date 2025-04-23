@@ -4,7 +4,7 @@ import requests
 app = Flask(__name__)
 
 TOGETHER_API_KEY = "58bedad48b97a0b3e75916ddf975f00642ed68b29b4f91aafee697749e0e2682"
-TOGETHER_MODEL = "mistralai/Mistral-7B-Instruct-v0.1"
+TOGETHER_MODEL = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
 
 @app.route("/")
 def home():
