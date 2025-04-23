@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Toby AI - Web Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
+      padding: 2rem;
+    }
+
+    #chat-box {
+      border: 1px solid #444;
+      padding: 1rem;
+      height: 400px;
+      overflow-y: auto;
+      background: #222;
+    }
+
+    input, button {
+      padding: 10px;
+      font-size: 1rem;
+    }
+
+    #input-area {
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>💬 Toby AI</h1>
+  <div id="chat-box"></div>
+
+  <div id="input-area">
+    <input type="text" id="user-input" placeholder="Type your message..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    function addMessage(sender, message) {
+      const chatBox = document.getElementById("chat-box");
+      chatBox.innerHTML += `<p><strong>${sender}:</strong> ${message}</p>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const message = input.value;
+      if (!message) return;
+      addMessage("You", message);
+      input.value = "";
+
+      const response = await fetch("/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ message: message })
+      });
+
+      const data = await response.json();
+      addMessage("Toby", data.reply);
+    }
+  </script>
+</body>
+</html>
