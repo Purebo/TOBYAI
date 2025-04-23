@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 # === Settings ===
 TOGETHER_API_KEY = "58bedad48b97a0b3e75916ddf975f00642ed68b29b4f91aafee697749e0e2682"
-"mistralai/Mistral-7B-Instruct-v0.1"
+TOGETHER_MODEL = "mistralai/Mistral-7B-Instruct-v0.1"
   # or another model you're using
 LOG_FILE = "toby_chat_history.txt"
 
