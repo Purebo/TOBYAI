@@ -1,69 +1,136 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Toby AI - Web Chat</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-      padding: 2rem;
-    }
-
-    #chat-box {
-      border: 1px solid #444;
-      padding: 1rem;
-      height: 400px;
-      overflow-y: auto;
-      background: #222;
-    }
-
-    input, button {
-      padding: 10px;
-      font-size: 1rem;
-    }
-
-    #input-area {
-      margin-top: 1rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toby AI</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7fb;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            height: 90vh;
+            padding: 20px;
+        }
+        .chat-box {
+            width: 100%;
+            max-width: 600px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 70vh;
+        }
+        .message {
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin: 5px 0;
+            background-color: #ececec;
+            max-width: 90%;
+        }
+        .message.user {
+            background-color: #6fa3f7;
+            align-self: flex-end;
+        }
+        .message.ai {
+            background-color: #f1f1f1;
+            align-self: flex-start;
+        }
+        .input-container {
+            display: flex;
+            width: 100%;
+            max-width: 600px;
+            padding: 10px 0;
+        }
+        .input-box {
+            width: 80%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+        }
+        .send-btn {
+            background-color: #6fa3f7;
+            padding: 10px 15px;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+            border: none;
+        }
+        .toggle-theme {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-  <h1>💬 Toby AI</h1>
-  <div id="chat-box"></div>
 
-  <div id="input-area">
-    <input type="text" id="user-input" placeholder="Type your message..." />
-    <button onclick="sendMessage()">Send</button>
-  </div>
+<div class="chat-container">
+    <div class="chat-box" id="chat-box">
+        <!-- Messages will go here -->
+    </div>
+    <div class="input-container">
+        <input type="text" class="input-box" id="user-input" placeholder="Type a message...">
+        <button class="send-btn" id="send-btn">Send</button>
+    </div>
+</div>
 
-  <script>
-    function addMessage(sender, message) {
-      const chatBox = document.getElementById("chat-box");
-      chatBox.innerHTML += `<p><strong>${sender}:</strong> ${message}</p>`;
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
+<button class="toggle-theme" id="toggle-theme">🌙</button>
 
-    async function sendMessage() {
-      const input = document.getElementById("user-input");
-      const message = input.value;
-      if (!message) return;
-      addMessage("You", message);
-      input.value = "";
+<script>
+    const chatBox = document.getElementById("chat-box");
+    const userInput = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
+    const toggleTheme = document.getElementById("toggle-theme");
 
-      const response = await fetch("/ask", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ message: message })
-      });
+    let darkMode = false;
 
-      const data = await response.json();
-      addMessage("Toby", data.reply);
-    }
-  </script>
+    const addMessage = (text, isUser) => {
+        const message = document.createElement("div");
+        message.classList.add("message");
+        message.classList.add(isUser ? "user" : "ai");
+        message.textContent = text;
+        chatBox.appendChild(message);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    };
+
+    sendBtn.addEventListener("click", () => {
+        const messageText = userInput.value;
+        if (messageText.trim()) {
+            addMessage(messageText, true);  // User message
+            userInput.value = "";
+            setTimeout(() => {
+                addMessage("Toby is thinking...", false);  // AI thinking message
+                setTimeout(() => {
+                    addMessage("Hello! How can I assist you?", false);  // Example response
+                }, 1000);
+            }, 500);
+        }
+    });
+
+    // Dark/Light theme toggle
+    toggleTheme.addEventListener("click", () => {
+        darkMode = !darkMode;
+        document.body.style.backgroundColor = darkMode ? "#333" : "#f4f7fb";
+        document.body.style.color = darkMode ? "#fff" : "#333";
+        toggleTheme.textContent = darkMode ? "☀️" : "🌙";
+    });
+</script>
+
 </body>
 </html>
