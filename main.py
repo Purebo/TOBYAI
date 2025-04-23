@@ -41,19 +41,21 @@ def ask_together_ai():
         "Authorization": f"Bearer {TOGETHER_API_KEY}",
         "Content-Type": "application/json"
     }
+
     payload = {
-        "model": TOGETHER_MODEL,
+        "model": TOGETHER_MODEL,  # Ensure this is correct
         "messages": conversation_history,
         "temperature": 0.7,
-        "max_tokens": 500
+        "max_tokens": 500,
     }
 
     try:
         response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
+        response.raise_for_status()  # Will raise an exception for 400 or 500 status codes
         return response.json()["choices"][0]["message"]["content"]
     except Exception as e:
         return f"Error: {e}"
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
