@@ -7,20 +7,21 @@
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #111, #222);
+            background-color: #111;
             color: #fff;
             margin: 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
         }
         header {
-            background: #444;
-            color: #fff;
-            text-align: center;
+            background-color: #222;
             padding: 1rem;
+            text-align: center;
             font-size: 1.5rem;
             font-weight: bold;
+            border-bottom: 1px solid #444;
         }
         #chat-box {
             flex: 1;
@@ -28,65 +29,130 @@
             padding: 1rem;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 1rem;
         }
         .message {
             max-width: 80%;
-            padding: 0.7rem 1rem;
-            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            line-height: 1.4;
             word-wrap: break-word;
         }
         .user {
             align-self: flex-end;
-            background: #0084ff;
-            color: #fff;
+            background-color: #0084ff;
         }
         .bot {
             align-self: flex-start;
-            background: #444;
+            background-color: #444;
         }
+        .bot pre {
+            white-space: pre-wrap;
+            background-color: #333;
+            padding: 0.5rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        /* Calculation styling */
+        .bot strong {
+            color: #0084ff;
+        }
+        
         form {
             display: flex;
             border-top: 1px solid #444;
         }
-        input, button {
-            padding: 1rem;
-            font-size: 1rem;
-            border: none;
-            outline: none;
-        }
         input {
             flex: 1;
-            background: #222;
+            padding: 1rem;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            background-color: #222;
             color: #fff;
         }
         button {
-            background: #0084ff;
-            color: #fff;
+            background-color: #0084ff;
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
             cursor: pointer;
         }
         button:hover {
-            background: #005bbb;
+            background-color: #0070d8;
+        }
+        @media (max-width: 600px) {
+            .message {
+                max-width: 95%;
+                font-size: 0.95rem;
+            }
+            header {
+                font-size: 1.25rem;
+            }
+            input, button {
+                padding: 0.75rem;
+            }
+        }
+        #typing-indicator {
+            align-self: flex-start;
+            color: #aaa;
+            margin-left: 1rem;
+            display: none;
         }
     </style>
 </head>
 <body>
     <header>Toby AI</header>
-    <div id="chat-box"></div>
+    <div id="chat-box">
+        <!-- Initial welcome message will appear here -->
+    </div>
+    <div id="typing-indicator">Toby is thinking...</div>
     <form id="chat-form">
-        <input type="text" id="message-input" placeholder="Type your message..." required>
+        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required>
         <button type="submit">Send</button>
     </form>
     <script>
         const chatBox = document.getElementById('chat-box');
         const form = document.getElementById('chat-form');
         const input = document.getElementById('message-input');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        // Add welcome message when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                addMessage("Toby", "Hello! I'm Toby AI. How can I help you today?");
+            }, 300);
+        });
 
         function addMessage(sender, text) {
-            const message = document.createElement('div');
-            message.classList.add('message', sender === 'You' ? 'user' : 'bot');
-            message.textContent = text;
-            chatBox.appendChild(message);
+            const messageEl = document.createElement('div');
+            messageEl.classList.add('message', sender === 'You' ? 'user' : 'bot');
+            
+            // Handle code blocks and text formatting in AI responses
+            if (sender === 'Toby') {
+                // Fix any remaining spacing issues that might come through
+                text = text
+                    // Ensure space after punctuation if missing
+                    .replace(/([.!?,;:])([A-Za-z])/g, '$1 $2')
+                    // Fix multiple spaces
+                    .replace(/\s{2,}/g, ' ');
+                
+                // Enhance calculation display
+                text = text
+                    // Format operators with consistent spacing
+                    .replace(/(\d+)\s*([+\-*/×÷=])\s*(\d+)/g, '$1 $2 $3');
+                
+                // Allow HTML content for bot messages (for formatting)
+                messageEl.innerHTML = text;
+            } else {
+                // For user messages, use textContent for security
+                messageEl.textContent = text;
+            }
+            
+            chatBox.appendChild(messageEl);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
@@ -94,21 +160,37 @@
             e.preventDefault();
             const userMessage = input.value.trim();
             if (!userMessage) return;
-
+            
+            // Disable input while processing
+            input.disabled = true;
+            
             addMessage("You", userMessage);
             input.value = "";
-
+            
+            // Show typing indicator
+            typingIndicator.style.display = 'block';
+            
             try {
-                const response = await fetch('/ask', {
+                const res = await fetch('/ask', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: userMessage })
                 });
-                const data = await response.json();
-                addMessage("Toby", data.reply || "Hmm... I couldn't process your message.");
-            } catch (error) {
-                addMessage("Toby", "Error communicating with the server.");
-                console.error(error);
+                
+                if (!res.ok) {
+                    throw new Error(`Server responded with status: ${res.status}`);
+                }
+                
+                const data = await res.json();
+                addMessage("Toby", data.reply || "Hmm... I didn't understand that.");
+            } catch (err) {
+                console.error("Error:", err);
+                addMessage("Toby", "There was an error communicating with the server. Please try again later.");
+            } finally {
+                // Hide typing indicator and re-enable input
+                typingIndicator.style.display = 'none';
+                input.disabled = false;
+                input.focus();
             }
         });
     </script>
