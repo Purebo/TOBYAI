@@ -204,6 +204,8 @@
             localStorage.setItem('theme', theme);
             localStorage.setItem('font-size', fontSize);
             applySettings();
+            // Close the settings panel after saving
+            settingsPanel.classList.remove('open');
         }
 
         function applySettings() {
