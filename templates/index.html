@@ -5,23 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toby AI</title>
     <style>
+        /* General Styling */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #111;
-            color: #fff;
             margin: 0;
             padding: 0;
+            background: linear-gradient(135deg, #111, #222);
+            color: #fff;
             display: flex;
             flex-direction: column;
             height: 100vh;
+            overflow: hidden;
         }
         header {
-            background-color: #222;
-            padding: 1rem;
+            background: #444;
+            color: #fff;
             text-align: center;
-            font-size: 1.5rem;
+            padding: 1rem;
+            font-size: 1.8rem;
             font-weight: bold;
-            border-bottom: 1px solid #444;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.5);
         }
         #chat-box {
             flex: 1;
@@ -37,6 +40,7 @@
             border-radius: 12px;
             line-height: 1.4;
             word-wrap: break-word;
+            animation: fadeIn 0.5s ease-in-out;
         }
         .user {
             align-self: flex-end;
@@ -46,54 +50,14 @@
             align-self: flex-start;
             background-color: #444;
         }
-        .bot pre {
-            white-space: pre-wrap;
-            background-color: #333;
-            padding: 0.5rem;
-            border-radius: 4px;
-            overflow-x: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-        }
-        /* Calculation styling */
-        .bot strong {
-            color: #0084ff;
-        }
-        
-        form {
-            display: flex;
-            border-top: 1px solid #444;
-        }
-        input {
-            flex: 1;
-            padding: 1rem;
-            border: none;
-            outline: none;
-            font-size: 1rem;
-            background-color: #222;
-            color: #fff;
-        }
-        button {
-            background-color: #0084ff;
-            color: white;
-            border: none;
-            padding: 1rem 1.5rem;
-            font-size: 1rem;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0070d8;
-        }
-        @media (max-width: 600px) {
-            .message {
-                max-width: 95%;
-                font-size: 0.95rem;
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
             }
-            header {
-                font-size: 1.25rem;
-            }
-            input, button {
-                padding: 0.75rem;
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
         #typing-indicator {
@@ -101,97 +65,183 @@
             color: #aaa;
             margin-left: 1rem;
             display: none;
+            font-style: italic;
+        }
+        form {
+            display: flex;
+            border-top: 1px solid #444;
+        }
+        input, button {
+            padding: 1rem;
+            font-size: 1rem;
+            border: none;
+            outline: none;
+        }
+        input {
+            flex: 1;
+            background: #222;
+            color: #fff;
+        }
+        button {
+            background: #0084ff;
+            color: #fff;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #005bbb;
+        }
+        #controls {
+            display: flex;
+            justify-content: space-between;
+            background: #222;
+            padding: 0.5rem 1rem;
+        }
+        #settings-panel {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100%;
+            background: #222;
+            color: #fff;
+            box-shadow: -4px 0px 6px rgba(0, 0, 0, 0.5);
+            padding: 1rem;
+            transition: right 0.3s ease;
+        }
+        #settings-panel.open {
+            right: 0;
+        }
+        #settings-panel label {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        #settings-panel select {
+            width: 100%;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background: #333;
+            color: #fff;
+            border: none;
+        }
+        #settings-panel button {
+            width: 100%;
+            background: #0084ff;
+            padding: 0.5rem;
+            color: white;
         }
     </style>
 </head>
 <body>
     <header>Toby AI</header>
+    <div id="controls">
+        <button onclick="loadChat()">Load Chat History</button>
+        <button onclick="exportChat()">Export Chat</button>
+        <button onclick="toggleSettings()">Settings</button>
+    </div>
     <div id="chat-box">
-        <!-- Initial welcome message will appear here -->
+        <!-- Chat history will appear here -->
     </div>
     <div id="typing-indicator">Toby is thinking...</div>
     <form id="chat-form">
         <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required>
         <button type="submit">Send</button>
     </form>
+    <div id="settings-panel">
+        <h3>Settings</h3>
+        <label for="theme">Theme:</label>
+        <select id="theme">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+        </select>
+        <label for="font-size">Font Size:</label>
+        <select id="font-size">
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+        </select>
+        <button onclick="saveSettings()">Save Settings</button>
+    </div>
     <script>
         const chatBox = document.getElementById('chat-box');
         const form = document.getElementById('chat-form');
         const input = document.getElementById('message-input');
         const typingIndicator = document.getElementById('typing-indicator');
-
-        // Add welcome message when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                addMessage("Toby", "Hello! I'm Toby AI. How can I help you today?");
-            }, 300);
-        });
+        const settingsPanel = document.getElementById('settings-panel');
 
         function addMessage(sender, text) {
             const messageEl = document.createElement('div');
             messageEl.classList.add('message', sender === 'You' ? 'user' : 'bot');
-            
-            // Handle code blocks and text formatting in AI responses
-            if (sender === 'Toby') {
-                // Fix any remaining spacing issues that might come through
-                text = text
-                    // Ensure space after punctuation if missing
-                    .replace(/([.!?,;:])([A-Za-z])/g, '$1 $2')
-                    // Fix multiple spaces
-                    .replace(/\s{2,}/g, ' ');
-                
-                // Enhance calculation display
-                text = text
-                    // Format operators with consistent spacing
-                    .replace(/(\d+)\s*([+\-*/×÷=])\s*(\d+)/g, '$1 $2 $3');
-                
-                // Allow HTML content for bot messages (for formatting)
-                messageEl.innerHTML = text;
-            } else {
-                // For user messages, use textContent for security
-                messageEl.textContent = text;
-            }
-            
+            messageEl.textContent = text;
             chatBox.appendChild(messageEl);
             chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function loadChat() {
+            fetch('/get_chat?user_id=exampleUserId')
+                .then(response => response.json())
+                .then(data => {
+                    chatBox.innerHTML = ""; // Clear existing messages
+                    data.conversation.forEach(msg => addMessage("Toby", msg));
+                });
+        }
+
+        function exportChat() {
+            const chatHistory = Array.from(chatBox.children).map(el => el.textContent).join('\n');
+            const blob = new Blob([chatHistory], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'chat_history.txt';
+            link.click();
+        }
+
+        function toggleSettings() {
+            settingsPanel.classList.toggle('open');
+        }
+
+        function saveSettings() {
+            const theme = document.getElementById('theme').value;
+            const fontSize = document.getElementById('font-size').value;
+            localStorage.setItem('theme', theme);
+            localStorage.setItem('font-size', fontSize);
+            applySettings();
+        }
+
+        function applySettings() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            const fontSize = localStorage.getItem('font-size') || 'medium';
+            document.body.style.backgroundColor = theme === 'dark' ? '#111' : '#fff';
+            document.body.style.color = theme === 'dark' ? '#fff' : '#000';
+            document.body.style.fontSize = fontSize === 'small' ? '0.9rem' : fontSize === 'medium' ? '1rem' : '1.2rem';
         }
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const userMessage = input.value.trim();
             if (!userMessage) return;
-            
-            // Disable input while processing
             input.disabled = true;
-            
             addMessage("You", userMessage);
             input.value = "";
-            
-            // Show typing indicator
             typingIndicator.style.display = 'block';
-            
             try {
                 const res = await fetch('/ask', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: userMessage })
                 });
-                
-                if (!res.ok) {
-                    throw new Error(`Server responded with status: ${res.status}`);
-                }
-                
                 const data = await res.json();
                 addMessage("Toby", data.reply || "Hmm... I didn't understand that.");
             } catch (err) {
-                console.error("Error:", err);
-                addMessage("Toby", "There was an error communicating with the server. Please try again later.");
+                addMessage("Toby", "Error communicating with the server. Please try again.");
             } finally {
-                // Hide typing indicator and re-enable input
                 typingIndicator.style.display = 'none';
                 input.disabled = false;
-                input.focus();
             }
+        });
+
+        // Apply settings when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            applySettings();
+            addMessage("Toby", "Welcome to Toby AI! Start chatting or explore the features.");
         });
     </script>
 </body>
