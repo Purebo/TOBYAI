@@ -1,85 +1,56 @@
-# Toby AI - Updated main.py with OpenAI GPT integration and Hugging Face support
-
-import os
+from flask import Flask, render_template, request, jsonify
 import requests
-import openai
-from flask import Flask, request, jsonify
-from dotenv import load_dotenv
-
-# --- LOAD ENV VARIABLES SAFELY ---
-load_dotenv()
+import os  # Added for environment variables
 
 app = Flask(__name__)
 
-# --- CONFIGURATION ---
-HUGGINGFACE_API_KEY = os.getenv("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")
-HUGGINGFACE_MODEL_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2"
+# TOGETHER API Config - Better to use environment variables
+TOGETHER_API_KEY = os.environ.get("TOGETHER_API_KEY", "58bedad48b97a0b3e75916ddf975f00642ed68b29b4f91aafee697749e0e2682")
+TOGETHER_MODEL = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
 
-OPENAI_API_KEY = os.getenv("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")
-openai.api_key = OPENAI_API_KEY
+# Format AI response for readability
+def format_message(message):
+    message = message.replace(". ", ".<br><br>")
+    message = message.replace("! ", "!<br><br>")
+    message = message.replace("? ", "?<br><br>")
+    return message
 
-# --- BRAIN FUNCTIONALITY ---
-
-@app.route("/chat", methods=["POST"])
-def chat():
-    user_input = request.json.get("message", "")
-
-    if not user_input:
-        return jsonify({"response": "Please enter a valid message."}), 400
-
-    response_text = handle_query(user_input)
-    return jsonify({"response": response_text})
-
-
-def handle_query(message):
-    if message.lower().startswith("generate image"):
-        prompt = message.replace("generate image", "").strip()
-        return generate_image(prompt)
-
-    if "who created you" in message.lower():
-        return "Spicy created me. He is my creator and guide."
-
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are Toby AI, a cool and smart assistant created by Spicy. Talk like a human, keep it simple and conversational. Avoid sounding like a robot or a list generator."
-                },
-                {"role": "user", "content": message}
-            ],
-            max_tokens=500
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"Error contacting OpenAI: {str(e)}"
-
-
-def generate_image(prompt):
-    headers = {
-        "Authorization": f"Bearer {HUGGINGFACE_API_KEY}"
-    }
-    data = {
-        "inputs": prompt
-    }
-    response = requests.post(HUGGINGFACE_MODEL_URL, headers=headers, json=data)
-
-    if response.status_code == 200:
-        try:
-            with open("static/generated_image.png", "wb") as f:
-                f.write(response.content)
-            return "Image generated! [Click here to view](static/generated_image.png)"
-        except Exception as e:
-            return f"Image received but error saving: {str(e)}"
-    else:
-        return f"Failed to generate image: {response.text}"
-
-
+# Home route
 @app.route("/")
 def home():
-    return "Toby AI is running. Use the /chat endpoint with POST requests."
+    return render_template("index.html")
 
+# Chat route
+@app.route("/ask", methods=["POST"])
+def ask():
+    user_input = request.json.get("message")
+    if not user_input:
+        return jsonify({"reply": "No input received."})
 
+    payload = {
+        "model": TOGETHER_MODEL,
+        "messages": [
+            {"role": "system", "content": "You are Toby AI, created by Spicy (Pureheart). Be powerful, smart, helpful, and well-spoken. Format your responses with space for readability."},
+            {"role": "user", "content": user_input}
+        ],
+        "temperature": 0.7,
+        "max_tokens": 500
+    }
+
+    headers = {
+        "Authorization": f"Bearer {TOGETHER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        response = requests.post("https://api.together.xyz/v1/chat/completions", headers=headers, json=payload)
+        response.raise_for_status()
+        ai_reply = response.json()["choices"][0]["message"]["content"]
+        formatted_reply = format_message(ai_reply)
+        return jsonify({"reply": formatted_reply})
+    except Exception as e:
+        return jsonify({"reply": f"Error: {str(e)}"})
+
+# Run server
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=10000)
