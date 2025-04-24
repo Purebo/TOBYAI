@@ -3,79 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toby AI Chat</title>
+    <title>Toby AI</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #111;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
+
+        header {
+            background-color: #222;
+            padding: 1rem;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-bottom: 1px solid #444;
+        }
+
         #chat-box {
-            max-height: 400px;
+            flex: 1;
             overflow-y: auto;
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-bottom: 20px;
-            background-color: #fff;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
+
         .message {
-            margin: 10px 0;
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            line-height: 1.4;
         }
-        .user-message {
-            color: blue;
+
+        .user {
+            align-self: flex-end;
+            background-color: #0084ff;
         }
-        .toby-message {
-            color: green;
+
+        .bot {
+            align-self: flex-start;
+            background-color: #444;
         }
-        #message-input {
-            width: 80%;
-            padding: 10px;
+
+        form {
+            display: flex;
+            border-top: 1px solid #444;
         }
-        #send-button {
-            padding: 10px;
+
+        input {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+        }
+
+        button {
+            background-color: #0084ff;
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            .message {
+                max-width: 95%;
+                font-size: 0.95rem;
+            }
+
+            header {
+                font-size: 1.25rem;
+            }
+
+            input, button {
+                padding: 0.75rem;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Toby AI Chat</h1>
-
+    <header>Toby AI</header>
     <div id="chat-box"></div>
-
-    <input type="text" id="message-input" placeholder="Type a message..." />
-    <button id="send-button">Send</button>
+    <form id="chat-form">
+        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required>
+        <button type="submit">Send</button>
+    </form>
 
     <script>
         const chatBox = document.getElementById('chat-box');
-        const messageInput = document.getElementById('message-input');
-        const sendButton = document.getElementById('send-button');
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('message-input');
 
-        // Function to send a message and receive a response
-        sendButton.addEventListener('click', async () => {
-            const userMessage = messageInput.value.trim();
-            if (userMessage === "") return;
-
-            // Display user message
-            chatBox.innerHTML += `<div class="message user-message"><strong>You:</strong> ${userMessage}</div>`;
-            messageInput.value = '';
-
-            // Send message to Flask backend and get response
-            const response = await fetch('http://127.0.0.1:5000/chat', {  // Make sure this URL matches where your backend is running
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: userMessage })
-            });
-
-            const data = await response.json();
-            const tobyMessage = data.response;
-
-            // Display Toby's response
-            chatBox.innerHTML += `<div class="message toby-message"><strong>Toby:</strong> ${tobyMessage}</div>`;
-
-            // Auto scroll to the bottom
+        function addMessage(sender, text) {
+            const messageEl = document.createElement('div');
+            messageEl.classList.add('message', sender === 'You' ? 'user' : 'bot');
+            messageEl.textContent = `${text}`;
+            chatBox.appendChild(messageEl);
             chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userMessage = input.value.trim();
+            if (!userMessage) return;
+
+            addMessage("You", userMessage);
+            input.value = "";
+
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userMessage })
+                });
+
+                const data = await res.json();
+                addMessage("Toby", data.response || "Hmm... I didn't understand that.");
+            } catch (err) {
+                addMessage("Toby", "There was an error. Please try again later.");
+            }
         });
     </script>
 </body>
 </html>
-
