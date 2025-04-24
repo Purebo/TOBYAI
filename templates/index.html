@@ -22,9 +22,8 @@
             color: #fff;
             text-align: center;
             padding: 1rem;
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: bold;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.5);
         }
         #chat-box {
             flex: 1;
@@ -32,15 +31,14 @@
             padding: 1rem;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 0.5rem;
         }
         .message {
             max-width: 80%;
-            padding: 0.75rem 1rem;
-            border-radius: 12px;
-            line-height: 1.4;
+            padding: 0.6rem 0.9rem;
+            border-radius: 10px;
+            line-height: 1.3;
             word-wrap: break-word;
-            animation: fadeIn 0.5s ease-in-out;
         }
         .user {
             align-self: flex-end;
@@ -49,23 +47,6 @@
         .bot {
             align-self: flex-start;
             background-color: #444;
-        }
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        #typing-indicator {
-            align-self: flex-start;
-            color: #aaa;
-            margin-left: 1rem;
-            display: none;
-            font-style: italic;
         }
         form {
             display: flex;
@@ -90,84 +71,45 @@
         button:hover {
             background: #005bbb;
         }
-        #controls {
-            display: flex;
-            justify-content: space-between;
-            background: #222;
-            padding: 0.5rem 1rem;
+        #typing-indicator {
+            display: none;
+            color: #aaa;
+            font-style: italic;
         }
-        #settings-panel {
-            position: fixed;
-            top: 0;
-            right: -300px;
-            width: 300px;
-            height: 100%;
-            background: #222;
-            color: #fff;
-            box-shadow: -4px 0px 6px rgba(0, 0, 0, 0.5);
-            padding: 1rem;
-            transition: right 0.3s ease;
-        }
-        #settings-panel.open {
-            right: 0;
-        }
-        #settings-panel label {
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-        #settings-panel select {
-            width: 100%;
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            background: #333;
-            color: #fff;
-            border: none;
-        }
-        #settings-panel button {
-            width: 100%;
-            background: #0084ff;
-            padding: 0.5rem;
-            color: white;
+        /* Mobile Styling */
+        @media (max-width: 600px) {
+            header {
+                font-size: 1.2rem;
+            }
+            .message {
+                font-size: 0.9rem;
+            }
+            input {
+                padding: 0.8rem;
+            }
+            button {
+                padding: 0.8rem;
+            }
         }
     </style>
 </head>
 <body>
     <header>Toby AI</header>
-    <div id="controls">
-        <button onclick="loadChat()">Load Chat History</button>
-        <button onclick="exportChat()">Export Chat</button>
-        <button onclick="toggleSettings()">Settings</button>
-    </div>
     <div id="chat-box">
-        <!-- Chat history will appear here -->
+        <!-- Chat messages will appear here -->
     </div>
-    <div id="typing-indicator">Toby is thinking...</div>
+    <div id="typing-indicator">Toby is typing...</div>
     <form id="chat-form">
-        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required>
+        <input type="text" id="message-input" placeholder="Type a message..." required>
         <button type="submit">Send</button>
     </form>
-    <div id="settings-panel">
-        <h3>Settings</h3>
-        <label for="theme">Theme:</label>
-        <select id="theme">
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-        </select>
-        <label for="font-size">Font Size:</label>
-        <select id="font-size">
-            <option value="small">Small</option>
-            <option value="medium">Medium</option>
-            <option value="large">Large</option>
-        </select>
-        <button onclick="saveSettings()">Save Settings</button>
-    </div>
     <script>
         const chatBox = document.getElementById('chat-box');
         const form = document.getElementById('chat-form');
         const input = document.getElementById('message-input');
         const typingIndicator = document.getElementById('typing-indicator');
-        const settingsPanel = document.getElementById('settings-panel');
 
+        // Add a message to the chat
         function addMessage(sender, text) {
             const messageEl = document.createElement('div');
             messageEl.classList.add('message', sender === 'You' ? 'user' : 'bot');
@@ -176,54 +118,19 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function loadChat() {
-            fetch('/get_chat?user_id=exampleUserId')
-                .then(response => response.json())
-                .then(data => {
-                    chatBox.innerHTML = ""; // Clear existing messages
-                    data.conversation.forEach(msg => addMessage("Toby", msg));
-                });
-        }
-
-        function exportChat() {
-            const chatHistory = Array.from(chatBox.children).map(el => el.textContent).join('\n');
-            const blob = new Blob([chatHistory], { type: 'text/plain' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'chat_history.txt';
-            link.click();
-        }
-
-        function toggleSettings() {
-            settingsPanel.classList.toggle('open');
-        }
-
-        function saveSettings() {
-            const theme = document.getElementById('theme').value;
-            const fontSize = document.getElementById('font-size').value;
-            localStorage.setItem('theme', theme);
-            localStorage.setItem('font-size', fontSize);
-            applySettings();
-            // Close the settings panel after saving
-            settingsPanel.classList.remove('open');
-        }
-
-        function applySettings() {
-            const theme = localStorage.getItem('theme') || 'dark';
-            const fontSize = localStorage.getItem('font-size') || 'medium';
-            document.body.style.backgroundColor = theme === 'dark' ? '#111' : '#fff';
-            document.body.style.color = theme === 'dark' ? '#fff' : '#000';
-            document.body.style.fontSize = fontSize === 'small' ? '0.9rem' : fontSize === 'medium' ? '1rem' : '1.2rem';
-        }
-
+        // Submit chat message
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const userMessage = input.value.trim();
             if (!userMessage) return;
-            input.disabled = true;
+
+            // Add user message to chat
             addMessage("You", userMessage);
-            input.value = "";
+            input.value = ""; // Clear input
+
+            // Show typing indicator
             typingIndicator.style.display = 'block';
+
             try {
                 const res = await fetch('/ask', {
                     method: 'POST',
@@ -231,19 +138,13 @@
                     body: JSON.stringify({ message: userMessage })
                 });
                 const data = await res.json();
-                addMessage("Toby", data.reply || "Hmm... I didn't understand that.");
-            } catch (err) {
+                addMessage("Toby", data.reply || "Hmm... I didn't get that.");
+            } catch (error) {
                 addMessage("Toby", "Error communicating with the server. Please try again.");
+                console.error("Chat error:", error);
             } finally {
-                typingIndicator.style.display = 'none';
-                input.disabled = false;
+                typingIndicator.style.display = 'none'; // Hide typing indicator
             }
-        });
-
-        // Apply settings when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            applySettings();
-            addMessage("Toby", "Welcome to Toby AI! Start chatting or explore the features.");
         });
     </script>
 </body>
