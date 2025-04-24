@@ -7,6 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
         }
         #chat-box {
             max-height: 400px;
@@ -14,6 +15,7 @@
             border: 1px solid #ccc;
             padding: 10px;
             margin-bottom: 20px;
+            background-color: #fff;
         }
         .message {
             margin: 10px 0;
@@ -37,8 +39,8 @@
     <h1>Toby AI Chat</h1>
 
     <div id="chat-box"></div>
-    
-    <input type="text" id="message-input" placeholder="Type a message..."/>
+
+    <input type="text" id="message-input" placeholder="Type a message..." />
     <button id="send-button">Send</button>
 
     <script>
@@ -46,17 +48,17 @@
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
 
-        // Send message to the server and get response
+        // Function to send a message and receive a response
         sendButton.addEventListener('click', async () => {
             const userMessage = messageInput.value.trim();
             if (userMessage === "") return;
 
-            // Show user message
+            // Display user message
             chatBox.innerHTML += `<div class="message user-message"><strong>You:</strong> ${userMessage}</div>`;
             messageInput.value = '';
 
-            // Send the message to the server
-            const response = await fetch('http://127.0.0.1:5000/chat', {
+            // Send message to Flask backend and get response
+            const response = await fetch('http://127.0.0.1:5000/chat', {  // Change this to the correct URL of your backend
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -67,10 +69,10 @@
             const data = await response.json();
             const tobyMessage = data.response;
 
-            // Show Toby's response
+            // Display Toby's response
             chatBox.innerHTML += `<div class="message toby-message"><strong>Toby:</strong> ${tobyMessage}</div>`;
-            
-            // Scroll to the bottom
+
+            // Auto scroll to the bottom
             chatBox.scrollTop = chatBox.scrollHeight;
         });
     </script>
