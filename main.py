@@ -15,7 +15,7 @@ app = Flask(__name__)
 HUGGINGFACE_API_KEY = os.getenv("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")
 HUGGINGFACE_MODEL_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2"
 
-OPENAI_API_KEY = os.getenv("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")
+OPENAI_API_KEY = os.getenv("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")
 openai.api_key = OPENAI_API_KEY
 
 # --- BRAIN FUNCTIONALITY ---
