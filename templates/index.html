@@ -5,17 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toby AI</title>
     <style>
-        /* General Styling */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
             background: linear-gradient(135deg, #111, #222);
             color: #fff;
+            margin: 0;
             display: flex;
             flex-direction: column;
             height: 100vh;
-            overflow: hidden;
         }
         header {
             background: #444;
@@ -35,18 +32,18 @@
         }
         .message {
             max-width: 80%;
-            padding: 0.6rem 0.9rem;
+            padding: 0.7rem 1rem;
             border-radius: 10px;
-            line-height: 1.3;
             word-wrap: break-word;
         }
         .user {
             align-self: flex-end;
-            background-color: #0084ff;
+            background: #0084ff;
+            color: #fff;
         }
         .bot {
             align-self: flex-start;
-            background-color: #444;
+            background: #444;
         }
         form {
             display: flex;
@@ -71,79 +68,47 @@
         button:hover {
             background: #005bbb;
         }
-        #typing-indicator {
-            display: none;
-            color: #aaa;
-            font-style: italic;
-        }
-        /* Mobile Styling */
-        @media (max-width: 600px) {
-            header {
-                font-size: 1.2rem;
-            }
-            .message {
-                font-size: 0.9rem;
-            }
-            input {
-                padding: 0.8rem;
-            }
-            button {
-                padding: 0.8rem;
-            }
-        }
     </style>
 </head>
 <body>
     <header>Toby AI</header>
-    <div id="chat-box">
-        <!-- Chat messages will appear here -->
-    </div>
-    <div id="typing-indicator">Toby is typing...</div>
+    <div id="chat-box"></div>
     <form id="chat-form">
-        <input type="text" id="message-input" placeholder="Type a message..." required>
+        <input type="text" id="message-input" placeholder="Type your message..." required>
         <button type="submit">Send</button>
     </form>
     <script>
         const chatBox = document.getElementById('chat-box');
         const form = document.getElementById('chat-form');
         const input = document.getElementById('message-input');
-        const typingIndicator = document.getElementById('typing-indicator');
 
-        // Add a message to the chat
         function addMessage(sender, text) {
-            const messageEl = document.createElement('div');
-            messageEl.classList.add('message', sender === 'You' ? 'user' : 'bot');
-            messageEl.textContent = text;
-            chatBox.appendChild(messageEl);
+            const message = document.createElement('div');
+            message.classList.add('message', sender === 'You' ? 'user' : 'bot');
+            message.textContent = text;
+            chatBox.appendChild(message);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // Submit chat message
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const userMessage = input.value.trim();
             if (!userMessage) return;
 
-            // Add user message to chat
             addMessage("You", userMessage);
-            input.value = ""; // Clear input
-
-            // Show typing indicator
-            typingIndicator.style.display = 'block';
+            input.value = "";
 
             try {
-                const res = await fetch('/ask', {
+                const response = await fetch('/ask', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: userMessage })
                 });
-                const data = await res.json();
-                addMessage("Toby", data.reply || "Hmm... I didn't get that.");
+                const data = await response.json();
+                addMessage("Toby", data.reply || "Hmm... I couldn't process your message.");
             } catch (error) {
-                addMessage("Toby", "Error communicating with the server. Please try again.");
-                console.error("Chat error:", error);
-            } finally {
-                typingIndicator.style.display = 'none'; // Hide typing indicator
+                addMessage("Toby", "Error communicating with the server.");
+                console.error(error);
             }
         });
     </script>
