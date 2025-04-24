@@ -58,7 +58,7 @@
             messageInput.value = '';
 
             // Send message to Flask backend and get response
-            const response = await fetch('http://127.0.0.1:5000/chat', {  // Change this to the correct URL of your backend
+            const response = await fetch('http://127.0.0.1:5000/chat', {  // Make sure this URL matches where your backend is running
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -78,3 +78,4 @@
     </script>
 </body>
 </html>
+
