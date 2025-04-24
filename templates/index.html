@@ -53,7 +53,13 @@
             border-radius: 4px;
             overflow-x: auto;
             font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
         }
+        /* Calculation styling */
+        .bot strong {
+            color: #0084ff;
+        }
+        
         form {
             display: flex;
             border-top: 1px solid #444;
@@ -103,7 +109,7 @@
     <div id="chat-box">
         <!-- Initial welcome message will appear here -->
     </div>
-    <div id="typing-indicator">Toby is typing...</div>
+    <div id="typing-indicator">Toby is thinking...</div>
     <form id="chat-form">
         <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required>
         <button type="submit">Send</button>
@@ -125,12 +131,19 @@
             const messageEl = document.createElement('div');
             messageEl.classList.add('message', sender === 'You' ? 'user' : 'bot');
             
-            // Handle code blocks in AI responses
+            // Handle code blocks and text formatting in AI responses
             if (sender === 'Toby') {
-                // Replace code blocks with proper formatting
-                text = text.replace(/```([\s\S]*?)```/g, (match, code) => {
-                    return `<pre>${code}</pre>`;
-                });
+                // Fix any remaining spacing issues that might come through
+                text = text
+                    // Ensure space after punctuation if missing
+                    .replace(/([.!?,;:])([A-Za-z])/g, '$1 $2')
+                    // Fix multiple spaces
+                    .replace(/\s{2,}/g, ' ');
+                
+                // Enhance calculation display
+                text = text
+                    // Format operators with consistent spacing
+                    .replace(/(\d+)\s*([+\-*/×÷=])\s*(\d+)/g, '$1 $2 $3');
                 
                 // Allow HTML content for bot messages (for formatting)
                 messageEl.innerHTML = text;
@@ -158,7 +171,7 @@
             typingIndicator.style.display = 'block';
             
             try {
-                const res = await fetch('/ask', {  // Changed from '/chat' to '/ask' to match your Flask route
+                const res = await fetch('/ask', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: userMessage })
