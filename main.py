@@ -43,7 +43,10 @@ def handle_query(message):
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are Toby AI, created by Spicy. Be helpful, powerful, and smart."},
+                {
+                    "role": "system",
+                    "content": "You are Toby AI, a cool and smart assistant created by Spicy. Talk like a human, keep it simple and conversational. Avoid sounding like a robot or a list generator."
+                },
                 {"role": "user", "content": message}
             ],
             max_tokens=500
