@@ -3,176 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toby AI Assistant</title>
+    <title>Toby AI Chat</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
         }
-        .chat-container {
-            background-color: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            max-height: 500px;
+        #chat-box {
+            max-height: 400px;
             overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 20px;
         }
         .message {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 5px;
-            overflow-wrap: break-word;
+            margin: 10px 0;
         }
         .user-message {
-            background-color: #e3f2fd;
-            text-align: right;
+            color: blue;
         }
-        .ai-message {
-            background-color: #f1f1f1;
+        .toby-message {
+            color: green;
         }
-        input[type="text"] {
+        #message-input {
             width: 80%;
             padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-right: 10px;
         }
-        button {
-            padding: 10px 15px;
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0b7dda;
-        }
-        .loading {
-            display: none;
-            color: #666;
-            margin-top: 10px;
-        }
-        
-        /* Code block styling */
-        pre.code-block {
-            background-color: #282c34;
-            color: #abb2bf;
-            padding: 12px;
-            border-radius: 6px;
-            overflow-x: auto;
-            font-family: 'Courier New', Courier, monospace;
-            margin: 10px 0;
-            white-space: pre-wrap;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-        
-        code {
-            font-family: 'Courier New', Courier, monospace;
-        }
-        
-        /* Syntax highlighting classes */
-        .language-python .keyword { color: #c678dd; }
-        .language-python .string { color: #98c379; }
-        .language-python .number { color: #d19a66; }
-        .language-python .comment { color: #5c6370; font-style: italic; }
-        
-        .language-javascript .keyword { color: #c678dd; }
-        .language-javascript .string { color: #98c379; }
-        .language-javascript .number { color: #d19a66; }
-        .language-javascript .comment { color: #5c6370; font-style: italic; }
-        
-        /* Make sure code blocks in AI messages are properly aligned */
-        .ai-message pre.code-block {
-            text-align: left;
+        #send-button {
+            padding: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>Toby AI Assistant</h1>
+    <h1>Toby AI Chat</h1>
+
+    <div id="chat-box"></div>
     
-    <div class="chat-container" id="chatBox"></div>
-    
-    <div>
-        <input type="text" id="userInput" placeholder="Type your message here...">
-        <button onclick="sendMessage()">Send</button>
-    </div>
-    
-    <div class="loading" id="loadingIndicator">Thinking...</div>
+    <input type="text" id="message-input" placeholder="Type a message..."/>
+    <button id="send-button">Send</button>
 
     <script>
-        // Add an initial greeting
-        document.addEventListener('DOMContentLoaded', function() {
-            const chatBox = document.getElementById('chatBox');
-            const aiMessage = document.createElement('div');
-            aiMessage.className = 'message ai-message';
-            aiMessage.innerHTML = 'Hello! I\'m Toby AI. How can I help you today?';
-            chatBox.appendChild(aiMessage);
-        });
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
 
-        async function sendMessage() {
-            const userInput = document.getElementById('userInput');
-            const chatBox = document.getElementById('chatBox');
-            const loadingIndicator = document.getElementById('loadingIndicator');
+        // Send message to the server and get response
+        sendButton.addEventListener('click', async () => {
+            const userMessage = messageInput.value.trim();
+            if (userMessage === "") return;
+
+            // Show user message
+            chatBox.innerHTML += `<div class="message user-message"><strong>You:</strong> ${userMessage}</div>`;
+            messageInput.value = '';
+
+            // Send the message to the server
+            const response = await fetch('http://127.0.0.1:5000/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: userMessage })
+            });
+
+            const data = await response.json();
+            const tobyMessage = data.response;
+
+            // Show Toby's response
+            chatBox.innerHTML += `<div class="message toby-message"><strong>Toby:</strong> ${tobyMessage}</div>`;
             
-            // Get user message
-            const userMessage = userInput.value.trim();
-            if (!userMessage) return;
-            
-            // Display user message
-            const userDiv = document.createElement('div');
-            userDiv.className = 'message user-message';
-            userDiv.textContent = userMessage;
-            chatBox.appendChild(userDiv);
-            
-            // Clear input
-            userInput.value = '';
-            
-            // Show loading indicator
-            loadingIndicator.style.display = 'block';
-            
-            try {
-                // Send request to server
-                const response = await fetch('/ask', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ message: userMessage })
-                });
-                
-                const data = await response.json();
-                
-                // Display AI response
-                const aiDiv = document.createElement('div');
-                aiDiv.className = 'message ai-message';
-                aiDiv.innerHTML = data.reply;
-                chatBox.appendChild(aiDiv);
-                
-                // Scroll to bottom
-                chatBox.scrollTop = chatBox.scrollHeight;
-            } catch (error) {
-                console.error('Error:', error);
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'message ai-message';
-                errorDiv.textContent = 'Sorry, there was an error processing your request.';
-                chatBox.appendChild(errorDiv);
-            } finally {
-                // Hide loading indicator
-                loadingIndicator.style.display = 'none';
-            }
-        }
-        
-        // Allow sending message with Enter key
-        document.getElementById('userInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
+            // Scroll to the bottom
+            chatBox.scrollTop = chatBox.scrollHeight;
         });
     </script>
 </body>
