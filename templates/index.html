@@ -1,198 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toby AI</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #111;
-            color: #fff;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        header {
-            background-color: #222;
-            padding: 1rem;
-            text-align: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            border-bottom: 1px solid #444;
-        }
-        #chat-box {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .message {
-            max-width: 80%;
-            padding: 0.75rem 1rem;
-            border-radius: 12px;
-            line-height: 1.4;
-            word-wrap: break-word;
-        }
-        .user {
-            align-self: flex-end;
-            background-color: #0084ff;
-        }
-        .bot {
-            align-self: flex-start;
-            background-color: #444;
-        }
-        .bot pre {
-            white-space: pre-wrap;
-            background-color: #333;
-            padding: 0.5rem;
-            border-radius: 4px;
-            overflow-x: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-        }
-        /* Calculation styling */
-        .bot strong {
-            color: #0084ff;
-        }
-        
-        form {
-            display: flex;
-            border-top: 1px solid #444;
-        }
-        input {
-            flex: 1;
-            padding: 1rem;
-            border: none;
-            outline: none;
-            font-size: 1rem;
-            background-color: #222;
-            color: #fff;
-        }
-        button {
-            background-color: #0084ff;
-            color: white;
-            border: none;
-            padding: 1rem 1.5rem;
-            font-size: 1rem;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0070d8;
-        }
-        @media (max-width: 600px) {
-            .message {
-                max-width: 95%;
-                font-size: 0.95rem;
-            }
-            header {
-                font-size: 1.25rem;
-            }
-            input, button {
-                padding: 0.75rem;
-            }
-        }
-        #typing-indicator {
-            align-self: flex-start;
-            color: #aaa;
-            margin-left: 1rem;
-            display: none;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toby AI Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; }
+    #chat { flex: 1; padding: 1rem; overflow-y: auto; background: #f5f5f5; }
+    .message { margin: 0.5rem 0; }
+    .user { text-align: right; color: #007bff; }
+    .bot { text-align: left; color: #333; }
+    #input-bar { display: flex; padding: 0.5rem; background: #fff; }
+    #message { flex: 1; padding: 0.5rem; font-size: 1rem; }
+    #send { padding: 0.5rem 1rem; font-size: 1rem; margin-left: 0.5rem; }
+  </style>
 </head>
 <body>
-    <header>Toby AI</header>
-    <div id="chat-box">
-        <!-- Initial welcome message will appear here -->
-    </div>
-    <div id="typing-indicator">Toby is thinking...</div>
-    <form id="chat-form">
-        <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required>
-        <button type="submit">Send</button>
-    </form>
-    <script>
-        const chatBox = document.getElementById('chat-box');
-        const form = document.getElementById('chat-form');
-        const input = document.getElementById('message-input');
-        const typingIndicator = document.getElementById('typing-indicator');
+  <div id="chat"></div>
+  <div id="input-bar">
+    <input id="message" type="text" placeholder="Type your message..." autofocus />
+    <button id="send">Send</button>
+  </div>
+  <script>
+    const chatEl = document.getElementById('chat');
+    const msgInput = document.getElementById('message');
+    const sendBtn = document.getElementById('send');
 
-        // Add welcome message when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                addMessage("Toby", "Hello! I'm Toby AI. How can I help you today?");
-            }, 300);
+    function appendMessage(text, cls) {
+      const div = document.createElement('div');
+      div.className = `message ${cls}`;
+      div.textContent = text;
+      chatEl.appendChild(div);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const msg = msgInput.value.trim();
+      if (!msg) return;
+      appendMessage(`You: ${msg}`, 'user');
+      msgInput.value = '';
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg })
         });
+        const data = await res.json();
+        appendMessage(`Toby: ${data.response}`, 'bot');
+      } catch (e) {
+        appendMessage('Error: Unable to reach server.', 'bot');
+      }
+    }
 
-        function addMessage(sender, text) {
-            const messageEl = document.createElement('div');
-            messageEl.classList.add('message', sender === 'You' ? 'user' : 'bot');
-            
-            // Handle code blocks and text formatting in AI responses
-            if (sender === 'Toby') {
-                // Fix any remaining spacing issues that might come through
-                text = text
-                    // Ensure space after punctuation if missing
-                    .replace(/([.!?,;:])([A-Za-z])/g, '$1 $2')
-                    // Fix multiple spaces
-                    .replace(/\s{2,}/g, ' ');
-                
-                // Enhance calculation display
-                text = text
-                    // Format operators with consistent spacing
-                    .replace(/(\d+)\s*([+\-*/×÷=])\s*(\d+)/g, '$1 $2 $3');
-                
-                // Allow HTML content for bot messages (for formatting)
-                messageEl.innerHTML = text;
-            } else {
-                // For user messages, use textContent for security
-                messageEl.textContent = text;
-            }
-            
-            chatBox.appendChild(messageEl);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const userMessage = input.value.trim();
-            if (!userMessage) return;
-            
-            // Disable input while processing
-            input.disabled = true;
-            
-            addMessage("You", userMessage);
-            input.value = "";
-            
-            // Show typing indicator
-            typingIndicator.style.display = 'block';
-            
-            try {
-                const res = await fetch('/ask', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: userMessage })
-                });
-                
-                if (!res.ok) {
-                    throw new Error(`Server responded with status: ${res.status}`);
-                }
-                
-                const data = await res.json();
-                addMessage("Toby", data.reply || "Hmm... I didn't understand that.");
-            } catch (err) {
-                console.error("Error:", err);
-                addMessage("Toby", "There was an error communicating with the server. Please try again later.");
-            } finally {
-                // Hide typing indicator and re-enable input
-                typingIndicator.style.display = 'none';
-                input.disabled = false;
-                input.focus();
-            }
-        });
-    </script>
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+  </script>
 </body>
 </html>
