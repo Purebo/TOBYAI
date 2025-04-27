@@ -1,228 +1,181 @@
-from flask import Flask, render_template, request, jsonify
-import requests
 import os
-import logging
-import re
+import random
+import json
+import requests
+from flask import Flask, request, jsonify
+from duckduckgo_search import DDGS
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# --- Toby AI Class ---
+class TobyAI:
+    def __init__(self):
+        self.creator = "Pureheart (Spicy)"
+        self.name = "Toby AI"
+        
+        # API Keys and Settings
+        self.together_api_key = os.getenv("TOGETHER_API_KEY", "tgp_v1_Pctw4hBJp8GJ-O1iX_yeLiSMBZCkBkYckXaMiCJVYZs")
+        self.together_model = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+        self.together_api_url = "https://api.together.xyz/v1/chat/completions"
+        self.weather_api_key = os.getenv("WEATHER_API_KEY", "ee9863e5da3dc66f36b37f7b536d2989")
+        
+        self.conversation_history = []
+        self.max_history_length = 5
+        
+        self.predefined_responses = {
+            "who are you": f"I am {self.name}, created by {self.creator}.",
+            "what are you": f"I am {self.name}, an AI assistant created by {self.creator}.",
+            "who created you": f"I was created by {self.creator}, also known as Spicy.",
+            "who made you": f"My creator is {self.creator}, the one and only Spicy Pureheart!",
+            "your name": f"My name is {self.name}. Nice to meet you!",
+            "how are you": "I'm functioning perfectly and ready to assist you!",
+            "hello": "Hello! How can I help today?",
+            "hi": "Hi there! Need anything?",
+            "help": "I can answer questions, check weather, search the web, and more. Just ask!",
+            "thanks": "You're welcome!",
+            "thank you": "You're welcome!"
+        }
 
+    def generate_response_with_together(self, query):
+        self.conversation_history.append(f"User: {query}")
+
+        messages = [
+            {"role": "system", "content": f"You are {self.name}, created by {self.creator}. Always be helpful and friendly."}
+        ]
+        
+        # Include conversation history
+        for item in self.conversation_history[-self.max_history_length*2:]:
+            if item.startswith("User: "):
+                messages.append({"role": "user", "content": item[6:]})
+            elif item.startswith(f"{self.name}: "):
+                messages.append({"role": "assistant", "content": item[len(self.name) + 2:]})
+
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.together_api_key}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "model": self.together_model,
+                "messages": messages,
+                "max_tokens": 150,
+                "temperature": 0.7,
+                "top_p": 0.9
+            }
+            response = requests.post(self.together_api_url, headers=headers, json=data, timeout=20)
+            if response.status_code == 200:
+                result = response.json()
+                assistant_message = result["choices"][0]["message"]["content"].strip()
+                self.conversation_history.append(f"{self.name}: {assistant_message}")
+                return assistant_message
+            else:
+                return f"Error {response.status_code}: {response.text}"
+        except Exception as e:
+            return f"API Error: {e}"
+
+    def search_web(self, query):
+        try:
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=2))
+                if results:
+                    response = results[0]['body']
+                    return (response[:300] + "...") if len(response) > 300 else response
+                return "I couldn't find anything useful."
+        except Exception as e:
+            return f"Search error: {e}"
+
+    def get_weather(self, city):
+        try:
+            url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={self.weather_api_key}&units=metric"
+            response = requests.get(url, timeout=10)
+            data = response.json()
+            if response.status_code == 200:
+                weather = data["weather"][0]["description"]
+                temp = data["main"]["temp"]
+                feels_like = data["main"]["feels_like"]
+                humidity = data["main"]["humidity"]
+                return f"In {city}: {weather}, {temp}°C, feels like {feels_like}°C, humidity {humidity}%."
+            else:
+                return f"Weather error: {data.get('message', 'Unknown error')}"
+        except Exception as e:
+            return f"Weather fetch error: {e}"
+
+    def predict_subscribers(self, days):
+        base = 1000
+        growth = random.uniform(0.9, 1.2)
+        prediction = int(days * base * growth)
+        return random.choice([
+            f"You might reach {prediction} subscribers in {days} days!",
+            f"Stay spicy! You could hit {prediction} subscribers in {days} days!",
+            f"In {days} days, expect about {prediction} fans!"
+        ])
+
+    def get_predefined_response(self, query):
+        for key, response in self.predefined_responses.items():
+            if key in query:
+                return response
+        return None
+
+    def handle_query(self, query):
+        query = query.lower().strip()
+        if not query:
+            return "Please say something."
+
+        predefined = self.get_predefined_response(query)
+        if predefined:
+            return predefined
+
+        if any(exit_word in query for exit_word in ["exit", "quit", "goodbye"]):
+            return "Goodbye, Pureheart! Stay awesome!"
+
+        if "hype my fans" in query:
+            return "Shoutout to all Pureheart fans! Keep the energy alive!"
+
+        if "weather in" in query:
+            try:
+                city = query.split("weather in ")[1].strip()
+                return self.get_weather(city)
+            except IndexError:
+                return "Please tell me which city you mean."
+
+        if "should i" in query:
+            if "upload" in query:
+                return "Definitely upload it! Your fans are waiting!"
+            else:
+                return "Maybe think about it first."
+
+        if "predict subscribers" in query:
+            try:
+                days = int(query.split("in ")[1].split(" days")[0])
+                return self.predict_subscribers(days)
+            except:
+                return "Say it like: 'predict subscribers in X days'."
+
+        if any(q in query for q in ["what is", "when did", "did", "check", "who is", "where is", "is", "how to", "why do"]):
+            return self.search_web(query)
+
+        return self.generate_response_with_together(query)
+
+# --- Flask App ---
 app = Flask(__name__)
+toby = TobyAI()
 
-# TOGETHER API Config
-TOGETHER_API_KEY = os.environ.get("TOGETHER_API_KEY", "58bedad48b97a0b3e75916ddf975f00642ed68b29b4f91aafee697749e0e2682")
-TOGETHER_MODEL = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
-
-# Format AI response for readability
-def format_message(message):
-    if not message:
-        return "No response received from AI."
-    
-    # First, check if there are code blocks and format them properly
-    message = format_code_blocks(message)
-    
-    # Regular text formatting for better readability
-    message = message.replace(". ", ".<br><br>")
-    message = message.replace("! ", "!<br><br>")
-    message = message.replace("? ", "?<br><br>")
-    
-    return message
-
-# Function to format code blocks nicely
-def format_code_blocks(text):
-    # Check if there are code blocks with triple backticks
-    code_block_pattern = r"```(\w*)\n([\s\S]*?)\n```"
-    
-    def replacement(match):
-        language = match.group(1) or ""
-        code = match.group(2)
-        
-        # Indent code properly if it's not already
-        formatted_code = indent_code(code, language)
-        
-        # Return formatted code with syntax highlighting classes
-        return f'<pre class="code-block"><code class="language-{language}">{formatted_code}</code></pre>'
-    
-    # Replace code blocks with formatted HTML
-    formatted_text = re.sub(code_block_pattern, replacement, text)
-    return formatted_text
-
-# Function to indent code based on its language
-def indent_code(code, language):
-    lines = code.split('\n')
-    formatted_lines = []
-    
-    # Handle indentation and formatting based on language
-    if language.lower() in ['python', 'py']:
-        indent_level = 0
-        for line in lines:
-            # Clean up line
-            line = line.rstrip()
-            
-            # Check for indentation changes
-            if re.search(r':\s*$', line) and not line.strip().startswith(('#', '"', "'")):
-                formatted_lines.append(line)
-                indent_level += 1
-            elif line.strip().startswith(('def ', 'class ', 'if ', 'elif ', 'else:', 'for ', 'while ', 'try:', 'except', 'finally:')):
-                # Reduce indent for new blocks
-                if indent_level > 0 and line.strip().startswith(('def ', 'class ', 'if ', 'for ', 'while ', 'try:')):
-                    if formatted_lines and not formatted_lines[-1].strip() == '':
-                        formatted_lines.append('')  # Add blank line before new block
-                formatted_lines.append(line)
-                if line.endswith(':'):
-                    indent_level += 1
-            elif line.strip() == '':
-                formatted_lines.append(line)
-            else:
-                formatted_lines.append(line)
-                
-    elif language.lower() in ['javascript', 'js', 'typescript', 'ts']:
-        # Similar formatting logic for JavaScript/TypeScript
-        indent_level = 0
-        for line in lines:
-            line = line.rstrip()
-            
-            # Handle bracket-based indentation
-            if '{' in line and '}' not in line:
-                formatted_lines.append(line)
-                indent_level += 1
-            elif '}' in line and '{' not in line:
-                indent_level = max(0, indent_level - 1)
-                formatted_lines.append(line)
-            else:
-                formatted_lines.append(line)
-    
-    elif language.lower() in ['html', 'xml']:
-        # Basic HTML formatting
-        for line in lines:
-            formatted_lines.append(line.rstrip())
-    else:
-        # For other languages, just clean up whitespace
-        for line in lines:
-            formatted_lines.append(line.rstrip())
-    
-    # HTML escape the code to prevent rendering issues
-    formatted_code = '\n'.join(formatted_lines)
-    formatted_code = formatted_code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-    
-    return formatted_code
-
-# Format calculation steps for clarity
-def format_calculations(text):
-    # Format calculation steps with better spacing and readability
-    text = re.sub(r'(\d+)\s*([+\-*/×÷=])\s*(\d+)', r'\1 \2 \3', text)
-    text = re.sub(r'Step\s+(\d+):', r'<br><strong>Step \1:</strong>', text)
-    return text
-
-# Home route
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-# Chat route
-@app.route("/ask", methods=["POST"])
-def ask():
-    user_input = request.json.get("message", "")
-    logger.info(f"Received user input: {user_input}")
-    
-    if not user_input.strip():
-        return jsonify({"reply": "No input received."})
-
-    # Enhanced system prompt with calculation instructions
-    system_prompt = """
-    You are Toby AI, created by Spicy (Pureheart). Be powerful, smart, helpful, and well-spoken.
-    
-    VERY IMPORTANT FORMATTING RULES:
-    1. Always use proper spacing between words and after punctuation
-    2. For calculations and math:
-       - Show your work step by step in a clear, basic way
-       - Use simple language that non-experts can understand
-       - Explain what each step does
-       - Present the final answer clearly after your calculations
-       - Format your calculation steps as "Step 1:", "Step 2:", etc.
-    
-    When asked to write code:
-    1. Always use proper indentation and spacing for readability
-    2. Include comments to explain complex sections
-    3. Use consistent formatting within each language
-    4. Always wrap code in triple backticks with the language specified, like: ```python
-    5. Structure your code logically with functions and classes where appropriate
-    
-    Answer questions directly and avoid repetitive greetings.
-    """
-
-    # Add conversation history to prevent repetitive responses
-    payload = {
-        "model": TOGETHER_MODEL,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_input}
-        ],
-        "temperature": 0.7,
-        "max_tokens": 800  # Increased token limit for more complete responses
-    }
-
-    headers = {
-        "Authorization": f"Bearer {TOGETHER_API_KEY}",
-        "Content-Type": "application/json"
-    }
-
+@app.route("/chat", methods=["POST"])
+def chat():
     try:
-        # Log the request being sent
-        logger.info(f"Sending request to Together API: {payload}")
+        data = request.get_json()
+        user_input = data.get("message", "")
+        if not user_input:
+            return jsonify({"response": "No input provided."}), 400
         
-        response = requests.post("https://api.together.xyz/v1/chat/completions", 
-                              headers=headers, 
-                              json=payload,
-                              timeout=30)  # Add timeout
-        
-        # Log the raw response
-        logger.info(f"Response status: {response.status_code}")
-        logger.info(f"Response content: {response.text[:200]}...")  # Log first 200 chars
-        
-        response.raise_for_status()
-        response_json = response.json()
-        
-        # Check if the expected fields exist
-        if "choices" in response_json and len(response_json["choices"]) > 0:
-            if "message" in response_json["choices"][0] and "content" in response_json["choices"][0]["message"]:
-                ai_reply = response_json["choices"][0]["message"]["content"]
-                logger.info(f"AI reply: {ai_reply[:100]}...")  # Log first 100 chars
-                
-                # Check if response is just a greeting
-                lower_reply = ai_reply.lower()
-                if any(greeting in lower_reply for greeting in ["how can i assist", "how may i help", "how can i help"]):
-                    ai_reply = "I noticed you might be experiencing a loop. Please provide more specific instructions or questions, and I'll do my best to assist with those directly."
-                
-                # Format the AI's reply
-                ai_reply = format_calculations(ai_reply)  # Format calculation steps
-                formatted_reply = format_message(ai_reply)
-                
-                # Fix common spacing issues
-                formatted_reply = re.sub(r'([.!?,;:])([A-Za-z])', r'\1 \2', formatted_reply)
-                formatted_reply = re.sub(r'\s{2,}', ' ', formatted_reply)
-                
-                return jsonify({"reply": formatted_reply})
-            else:
-                logger.error("Unexpected response structure: missing message or content")
-        else:
-            logger.error("Unexpected response structure: missing choices")
-        
-        return jsonify({"reply": "Received an unexpected response format from the AI service."})
-    
-    except requests.exceptions.Timeout:
-        logger.error("Request to Together API timed out")
-        return jsonify({"reply": "The request to the AI service timed out. Please try again."})
-    
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Request error: {str(e)}")
-        return jsonify({"reply": f"Error communicating with the AI service: {str(e)}"})
+        response = toby.handle_query(user_input)
+        return jsonify({"response": response})
     
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        return jsonify({"reply": f"An unexpected error occurred: {str(e)}"})
+        return jsonify({"error": f"Server error: {e}"}), 500
 
-# Run server
+@app.route("/", methods=["GET"])
+def home():
+    return "Toby AI Server is running!"
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000, debug=True)
+    port = int(os.getenv("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
