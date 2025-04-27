@@ -5,135 +5,174 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Toby AI</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Roboto', sans-serif;
-            transition: background-color 0.3s, color 0.3s;
+            font-family: 'Inter', sans-serif;
+            background: #121212;
+            color: #e5e5e5;
+            margin: 0;
             padding: 20px;
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-            color: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
         }
         .light-mode {
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-            color: #1e293b;
+            background: #f5f5f5;
+            color: #1a1a1a;
         }
         .container {
-            max-width: 900px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
             margin: 0 auto;
         }
         .header {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2.5rem;
+            font-size: 2rem;
+            font-weight: 600;
             text-align: center;
-            background: linear-gradient(45deg, #3b82f6, #ec4899);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
             margin-bottom: 20px;
+            color: #3b82f6;
+        }
+        .light-mode .header {
+            color: #1e40af;
         }
         #chat {
-            height: 450px;
+            flex-grow: 1;
             overflow-y: auto;
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 1px solid #475569;
-            border-radius: 12px;
             padding: 15px;
+            border-radius: 12px;
+            background: #1e1e1e;
+            border: 1px solid #333;
             margin-bottom: 20px;
         }
         .light-mode #chat {
-            background-color: rgba(255, 255, 255, 0.9);
-            border-color: #cbd5e1;
+            background: #ffffff;
+            border-color: #e0e0e0;
         }
         #chat p {
             margin: 10px 0;
-            padding: 10px;
+            padding: 10px 15px;
             border-radius: 8px;
-            line-height: 1.6;
+            max-width: 80%;
+            line-height: 1.5;
         }
         #chat p.user {
-            background-color: #3b82f6;
+            background: #3b82f6;
             color: #ffffff;
-            margin-left: 20%;
+            margin-left: auto;
+            text-align: right;
         }
         #chat p.toby {
-            background-color: #ec4899;
-            color: #ffffff;
-            margin-right: 20%;
+            background: #2d2d2d;
+            color: #e5e5e5;
+            margin-right: auto;
+        }
+        .light-mode #chat p.toby {
+            background: #e5e5e5;
+            color: #1a1a1a;
         }
         #chat p.error {
-            background-color: #ef4444;
+            background: #ef4444;
             color: #ffffff;
         }
-        .input-group {
+        .input-container {
             display: flex;
-            gap: 10px;
+            align-items: center;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 50px;
+            padding: 8px 15px;
+            max-width: 700px;
+            margin: 0 auto 20px;
+        }
+        .light-mode .input-container {
+            background: #ffffff;
+            border-color: #e0e0e0;
         }
         #user_input {
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 1px solid #475569;
-            color: #e2e8f0;
-            border-radius: 8px;
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: #e5e5e5;
+            font-size: 1rem;
+            outline: none;
         }
         .light-mode #user_input {
-            background-color: #ffffff;
-            border-color: #cbd5e1;
-            color: #1e293b;
+            color: #1a1a1a;
         }
-        .btn-custom {
-            background-color: #3b82f6;
-            border-color: #3b82f6;
-            border-radius: 8px;
+        #user_input::placeholder {
+            color: #888;
         }
-        .btn-custom:hover {
-            background-color: #2563eb;
-            border-color: #2563eb;
+        .send-btn {
+            background: #3b82f6;
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
         }
-        .btn-secondary-custom {
-            background-color: #475569;
-            border-color: #475569;
+        .send-btn:hover {
+            background: #2563eb;
         }
-        .btn-secondary-custom:hover {
-            background-color: #334155;
-            border-color: #334155;
+        .light-mode .send-btn {
+            background: #1e40af;
         }
-        .btn-info-custom {
-            background-color: #ec4899;
-            border-color: #ec4899;
+        .light-mode .send-btn:hover {
+            background: #1e3a8a;
         }
-        .btn-info-custom:hover {
-            background-color: #db2777;
-            border-color: #db2777;
+        .settings-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            color: #e5e5e5;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        .light-mode .settings-btn {
+            color: #1a1a1a;
         }
         .settings-panel {
             display: none;
             position: fixed;
-            top: 20px;
+            top: 60px;
             right: 20px;
-            background-color: #1e293b;
-            border: 1px solid #475569;
+            background: #1e1e1e;
+            border: 1px solid #333;
             padding: 15px;
-            border-radius: 12px;
+            border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             z-index: 1000;
         }
         .light-mode .settings-panel {
-            background-color: #ffffff;
-            border-color: #cbd5e1;
+            background: #ffffff;
+            border-color: #e0e0e0;
         }
         @media (max-width: 768px) {
             .header {
-                font-size: 1.8rem;
+                font-size: 1.5rem;
             }
             #chat {
-                height: 300px;
+                height: 50vh;
             }
-            #chat p.user, #chat p.toby {
-                margin-left: 10%;
-                margin-right: 10%;
+            .input-container {
+                max-width: 100%;
+                padding: 6px 10px;
+            }
+            #chat p {
+                max-width: 90%;
             }
             .settings-panel {
-                width: 80%;
-                right: 10%;
+                width: 90%;
+                right: 5%;
             }
         }
     </style>
@@ -141,21 +180,21 @@
 <body class="dark-mode">
     <div class="container">
         <h1 class="header">Toby AI</h1>
+        <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
         <div id="chat"></div>
-        <div class="input-group">
-            <input type="text" id="user_input" class="form-control" placeholder="Ask Toby something..." required>
-            <button class="btn btn-custom" onclick="sendQuery()">Send</button>
-            <button class="btn btn-secondary-custom" onclick="clearChat()">Clear Chat</button>
-            <button class="btn btn-info-custom" onclick="toggleSettings()">Settings</button>
+        <div class="input-container">
+            <input type="text" id="user_input" placeholder="Ask Toby something..." required>
+            <button class="send-btn" onclick="sendQuery()">➤</button>
         </div>
         <div id="settings-panel" class="settings-panel">
-            <h5 class="text-light">Settings</h5>
+            <h5>Settings</h5>
             <label for="theme-select" class="form-label">Theme:</label>
             <select id="theme-select" class="form-select" onchange="changeTheme()">
                 <option value="dark">Dark Mode</option>
                 <option value="light">Light Mode</option>
             </select>
-            <button class="btn btn-secondary-custom mt-2" onclick="toggleSettings()">Close</button>
+            <button class="btn btn-secondary btn-sm mt-2" onclick="clearChat()">Clear Chat</button>
+            <button class="btn btn-secondary btn-sm mt-2" onclick="toggleSettings()">Close</button>
         </div>
     </div>
 
@@ -188,7 +227,6 @@
                 });
                 const data = await response.json();
                 chat.innerHTML = chat.innerHTML.replace('<p><em>Loading...</em></p>', '');
-                // Split response by newlines and wrap each in <p> tags
                 const paragraphs = data.response.split('\n\n').map(p => `<p class="toby"><strong>Toby:</strong> ${p}</p>`).join('');
                 chat.innerHTML += paragraphs;
                 chat.scrollTop = chat.scrollHeight;
