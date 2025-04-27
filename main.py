@@ -1,7 +1,7 @@
 import os
 import random
 import requests
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from duckduckgo_search import DDGS
 
 # --- Toby AI Class ---
@@ -91,7 +91,7 @@ class TobyAI:
                 temp = data["main"]["temp"]
                 feels_like = data["main"]["feels_like"]
                 humidity = data["main"]["humidity"]
-                return f"In {city}: {weather}, {temp}°C, feels like {feels_like}°C, humidity {humidity}%."
+                return f"In {city}: {weather}, {temp}°C, feels like {feels_like}°C, humidity {humidity}%." 
             else:
                 return f"Weather error: {data.get('message', 'Unknown error')}"
         except Exception as e:
@@ -155,23 +155,23 @@ class TobyAI:
 
 
 # --- Flask App Setup ---
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 toby = TobyAI()
 
-@app.route("/", methods=["GET"])
-def home():
-    return "Toby AI Server is running!"
+@app.route('/', methods=['GET'])
+def index():
+    return send_from_directory('static', 'index.html')
 
-@app.route("/chat", methods=["POST"])
+@app.route('/chat', methods=['POST'])
 def chat():
     data = request.get_json(force=True)
-    user_input = data.get("message", "")
+    user_input = data.get('message', '')
     if not user_input:
-        return jsonify({"response": "No input provided."}), 400
+        return jsonify({'response': 'No input provided.'}), 400
 
     response = toby.handle_query(user_input)
-    return jsonify({"response": response})
+    return jsonify({'response': response})
 
-if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+if __name__ == '__main__':
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
