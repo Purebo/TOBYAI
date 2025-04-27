@@ -1,7 +1,7 @@
 import os
 import random
 import requests
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from duckduckgo_search import DDGS
 
 # --- Toby AI Class ---
@@ -153,14 +153,14 @@ class TobyAI:
 
         return self.generate_response_with_together(query)
 
-
-# --- Flask App Setup ---
-app = Flask(__name__, static_folder='static')
+# Initialize Flask app to serve static files directly
+app = Flask(__name__, static_folder='static', static_url_path='')
 toby = TobyAI()
 
 @app.route('/', methods=['GET'])
 def index():
-    return send_from_directory('static', 'index.html')
+    # Serve index.html from the static folder
+    return app.send_static_file('index.html')
 
 @app.route('/chat', methods=['POST'])
 def chat():
