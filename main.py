@@ -15,7 +15,7 @@ class TobyAI:
         
         # Together AI API settings
         self.together_api_key = os.getenv("TOGETHER_API_KEY", "tgp_v1_Pctw4hBJp8GJ-O1iX_yeLiSMBZCkBkYckXaMiCJVYZs")
-        self.together_model = "mixtral-8x7b-instruct-v0.1"  # Changed to more stable model
+        self.together_model = "mixtral-8x7b-instruct-v0.1"
         self.together_api_url = "https://api.together.xyz/v1/chat/completions"
         
         # API keys
@@ -67,7 +67,7 @@ class TobyAI:
         messages = [
             {
                 "role": "system",
-                "content": f"You are {self.name}, a friendly and professional AI assistant created by {self.creator}. Respond in a clear, concise, and conversational tone. Avoid creative tangents, song lyrics, or irrelevant content. Always provide complete and relevant answers."
+                "content": f"You are {self.name}, a friendly and professional AI assistant created by {self.creator}. For factual questions, provide direct, concise, and complete answers. Avoid creative tangents, song lyrics, or irrelevant details. Always ensure responses are relevant and fully address the query."
             }
         ]
         
@@ -104,10 +104,10 @@ class TobyAI:
                 
                 print(f"API Response: {json.dumps(result, indent=2)}")  # Log for debugging
                 
-                if finish_reason != "stop":
-                    print(f"Warning: Response may be incomplete (finish_reason: {finish_reason})")
+                if finish_reason == "length":
+                    print(f"Warning: Response truncated due to token limit: {assistant_message}")
+                    return "Response was too long to complete. Please ask for a shorter answer."
                 
-                # Validate response
                 if not self.is_response_valid(assistant_message):
                     print(f"Invalid response detected: {assistant_message}")
                     return "Hmm, I got a bit off-track. Could you repeat that?"
@@ -128,11 +128,12 @@ class TobyAI:
     def search_web(self, query):
         try:
             with DDGS() as ddgs:
-                results = list(ddgs.text(query, max_results=2))
+                results = list(ddgs.text(query, max_results=3))  # Increased for better context
                 if results:
-                    response = results[0]['body']
-                    return (response[:300] + "...") if len(response) > 300 else response
-                return "I couldn't find anything useful."
+                    # Combine top results for more context, up to 1000 chars
+                    response = " ".join([r['body'] for r in results])[:1000]
+                    return response
+                return "I couldn't find any useful information."
         except Exception as e:
             print(f"Search error: {e}")
             return "Problem occurred while searching the web."
@@ -171,6 +172,36 @@ class TobyAI:
                 return response
         return None
 
+    def handle_death_query(self, query):
+        """Handle queries like 'is [person] dead' with web search"""
+        try:
+            # Extract person’s name (e.g., "is pope francis dead" -> "pope francis")
+            name_match = re.search(r'is\s+(.+?)\s+dead', query.lower())
+            if name_match:
+                name = name_match.group(1).strip()
+                search_query = f"{name} death recent news 2025"  # Include year for recency
+                search_result = self.search_web(search_query)
+                
+                # Enhanced parsing for death confirmation
+                death_indicators = ["died", "passed away", "death confirmed", "obituary", "funeral held"]
+                alive_indicators = ["alive", "recently seen", "active", "continues to"]
+                date_pattern = r'\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+202[4-5]\b'
+                
+                # Check for death confirmation
+                if any(indicator in search_result.lower() for indicator in death_indicators):
+                    # Look for a specific date
+                    date_match = re.search(date_pattern, search_result)
+                    date = date_match.group(0) if date_match else "recently"
+                    return f"Yes, {name.title()} passed away {date}."
+                elif any(indicator in search_result.lower() for indicator in alive_indicators):
+                    return f"No, {name.title()} is still alive as of recent reports."
+                else:
+                    return f"I couldn’t find clear recent information on whether {name.title()} is alive or deceased."
+            return None
+        except Exception as e:
+            print(f"Death query error: {e}")
+            return "I couldn’t verify that information. Please try again."
+
     def respond(self, query):
         if not query:
             return "Please provide a query."
@@ -181,6 +212,12 @@ class TobyAI:
                 name = query.lower().replace("my name is", "").strip()
                 if name:
                     return self.speak(f"Nice to meet you, {name}! I'm Toby AI, ready to assist.")
+            
+            # Check for death-related queries
+            if "is" in query.lower() and "dead" in query.lower():
+                death_response = self.handle_death_query(query)
+                if death_response:
+                    return self.speak(death_response)
             
             predefined = self.get_predefined_response(query)
             if predefined:
