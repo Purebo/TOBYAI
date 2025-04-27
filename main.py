@@ -42,11 +42,16 @@ class TobyAI:
         print(f"Initialized {self.name} (web version)")
 
     def speak(self, text):
-        """Return text instead of printing for web use"""
-        return text
+        """Return text with spaces between characters for web use"""
+        spaced_text = ""
+        for char in text:
+            if char.isalnum():
+                spaced_text += char + " "
+            else:
+                spaced_text += char
+        return spaced_text.strip()
 
     def generate_response_with_together(self, query):
-        """Generate a response using Together AI API with Llama-4"""
         self.conversation_history.append(f"User: {query}")
         
         messages = [
@@ -56,7 +61,6 @@ class TobyAI:
             }
         ]
         
-        # Add last few messages
         for i in range(max(0, len(self.conversation_history) - self.max_history_length), len(self.conversation_history)):
             history_item = self.conversation_history[i]
             if history_item.startswith("User: "):
@@ -194,7 +198,6 @@ class TobyAI:
             print(f"Error responding: {e}")
             return self.speak("Something went wrong while thinking...")
 
-# Initialize Toby AI
 toby = TobyAI()
 
 @app.route('/')
