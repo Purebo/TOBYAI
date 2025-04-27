@@ -1,3 +1,4 @@
 flask
 requests
 duckduckgo_search
+gunicorn
