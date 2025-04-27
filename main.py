@@ -75,7 +75,7 @@ class TobyAI:
             data = {
                 "model": self.together_model,
                 "messages": messages,
-                "max_tokens": 512,  # Increased for complete responses
+                "max_tokens": 1024,  # Increased to ensure complete responses
                 "temperature": 0.7,
                 "top_p": 0.9
             }
@@ -86,6 +86,8 @@ class TobyAI:
                 result = response.json()
                 assistant_message = result["choices"][0]["message"]["content"].strip()
                 finish_reason = result["choices"][0].get("finish_reason", "stop")
+                
+                print(f"API Response: {json.dumps(result, indent=2)}")  # Log for debugging
                 
                 if finish_reason != "stop":
                     print(f"Warning: Response may be incomplete (finish_reason: {finish_reason})")
