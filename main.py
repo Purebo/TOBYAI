@@ -15,7 +15,7 @@ class TobyAI:
         
         # Together AI API settings
         self.together_api_key = os.getenv("TOGETHER_API_KEY", "tgp_v1_Pctw4hBJp8GJ-O1iX_yeLiSMBZCkBkYckXaMiCJVYZs")
-        self.together_model = "mixtral-8x7b-instruct-v0.1"
+        self.together_model = "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
         self.together_api_url = "https://api.together.xyz/v1/chat/completions"
         
         # API keys
