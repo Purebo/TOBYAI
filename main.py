@@ -2,6 +2,7 @@ import requests
 import random
 import os
 import json
+import re
 from flask import Flask, render_template, request, jsonify
 from duckduckgo_search import DDGS
 
@@ -14,7 +15,7 @@ class TobyAI:
         
         # Together AI API settings
         self.together_api_key = os.getenv("TOGETHER_API_KEY", "tgp_v1_Pctw4hBJp8GJ-O1iX_yeLiSMBZCkBkYckXaMiCJVYZs")
-        self.together_model = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
+        self.together_model = "mixtral-8x7b-instruct-v0.1"  # Changed to more stable model
         self.together_api_url = "https://api.together.xyz/v1/chat/completions"
         
         # API keys
@@ -31,6 +32,7 @@ class TobyAI:
             "who created you": f"I was created by {self.creator}, also known as Spicy.",
             "who made you": f"My creator is {self.creator}, the one and only Spicy Pureheart!",
             "your name": f"My name is {self.name}. Nice to meet you!",
+            "my name is": "Nice to meet you! I'm Toby AI, ready to assist.",
             "how are you": "I'm functioning perfectly and ready to assist you!",
             "hello": "Hello! How can I help today?",
             "hi": "Hi there! Need anything?",
@@ -46,13 +48,26 @@ class TobyAI:
         sentences = text.replace('. ', '.\n\n').replace('! ', '!\n\n').replace('? ', '?\n\n')
         return sentences.strip()
 
+    def is_response_valid(self, response):
+        """Check if response is relevant and not erratic (e.g., song lyrics)"""
+        lyric_patterns = [
+            r'\[Verse.*?\]',  # e.g., [Verse 2]
+            r'\[Chorus.*?\]',  # e.g., [Chorus]
+            r'chka-chka',      # e.g., chka-chka, Slim Shady
+            r'\b(rap|rhyme|spit bars)\b'  # e.g., rap-related terms
+        ]
+        for pattern in lyric_patterns:
+            if re.search(pattern, response, re.IGNORECASE):
+                return False
+        return True
+
     def generate_response_with_together(self, query):
         self.conversation_history.append(f"User: {query}")
         
         messages = [
             {
                 "role": "system",
-                "content": f"You are {self.name}, an AI assistant created by {self.creator}. Always be friendly, direct, and complete your responses."
+                "content": f"You are {self.name}, a friendly and professional AI assistant created by {self.creator}. Respond in a clear, concise, and conversational tone. Avoid creative tangents, song lyrics, or irrelevant content. Always provide complete and relevant answers."
             }
         ]
         
@@ -75,9 +90,9 @@ class TobyAI:
             data = {
                 "model": self.together_model,
                 "messages": messages,
-                "max_tokens": 1024,  # Increased to ensure complete responses
-                "temperature": 0.7,
-                "top_p": 0.9
+                "max_tokens": 1024,
+                "temperature": 0.5,
+                "top_p": 0.85
             }
             
             response = requests.post(self.together_api_url, headers=headers, json=data)
@@ -91,6 +106,11 @@ class TobyAI:
                 
                 if finish_reason != "stop":
                     print(f"Warning: Response may be incomplete (finish_reason: {finish_reason})")
+                
+                # Validate response
+                if not self.is_response_valid(assistant_message):
+                    print(f"Invalid response detected: {assistant_message}")
+                    return "Hmm, I got a bit off-track. Could you repeat that?"
                 
                 self.conversation_history.append(f"{self.name}: {assistant_message}")
                 
@@ -147,7 +167,7 @@ class TobyAI:
 
     def get_predefined_response(self, query):
         for key, response in self.predefined_responses.items():
-            if key in query:
+            if key in query.lower():
                 return response
         return None
 
@@ -156,6 +176,12 @@ class TobyAI:
             return "Please provide a query."
         
         try:
+            # Check for name introduction
+            if "my name is" in query.lower():
+                name = query.lower().replace("my name is", "").strip()
+                if name:
+                    return self.speak(f"Nice to meet you, {name}! I'm Toby AI, ready to assist.")
+            
             predefined = self.get_predefined_response(query)
             if predefined:
                 return self.speak(predefined)
@@ -190,6 +216,9 @@ class TobyAI:
                 return self.speak(self.search_web(query))
             
             else:
+                # Clear history if query seems unrelated to prevent context drift
+                if not any(keyword in query.lower() for keyword in ["continue", "more", "follow up"]):
+                    self.conversation_history = []
                 response = self.generate_response_with_together(query)
                 return self.speak(response)
         
