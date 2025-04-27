@@ -1,6 +1,5 @@
 import os
 import random
-import json
 import requests
 from flask import Flask, request, jsonify
 from duckduckgo_search import DDGS
@@ -154,27 +153,24 @@ class TobyAI:
 
         return self.generate_response_with_together(query)
 
-# --- Flask App ---
+
+# --- Flask App Setup ---
 app = Flask(__name__)
 toby = TobyAI()
-
-@app.route("/chat", methods=["POST"])
-def chat():
-    try:
-        data = request.get_json()
-        user_input = data.get("message", "")
-        if not user_input:
-            return jsonify({"response": "No input provided."}), 400
-        
-        response = toby.handle_query(user_input)
-        return jsonify({"response": response})
-    
-    except Exception as e:
-        return jsonify({"error": f"Server error: {e}"}), 500
 
 @app.route("/", methods=["GET"])
 def home():
     return "Toby AI Server is running!"
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json(force=True)
+    user_input = data.get("message", "")
+    if not user_input:
+        return jsonify({"response": "No input provided."}), 400
+
+    response = toby.handle_query(user_input)
+    return jsonify({"response": response})
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
