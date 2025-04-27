@@ -13,7 +13,7 @@ class TobyAI:
         self.name = "Toby AI"
         
         # Together AI API settings
-        self.together_api_key = "tgp_v1_Pctw4hBJp8GJ-O1iX_yeLiSMBZCkBkYckXaMiCJVYZs"
+        self.together_api_key = os.getenv("TOGETHER_API_KEY", "tgp_v1_Pctw4hBJp8GJ-O1iX_yeLiSMBZCkBkYckXaMiCJVYZs")
         self.together_model = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
         self.together_api_url = "https://api.together.xyz/v1/chat/completions"
         
@@ -42,14 +42,9 @@ class TobyAI:
         print(f"Initialized {self.name} (web version)")
 
     def speak(self, text):
-        """Return text with spaces between characters for web use"""
-        spaced_text = ""
-        for char in text:
-            if char.isalnum():
-                spaced_text += char + " "
-            else:
-                spaced_text += char
-        return spaced_text.strip()
+        """Return text with double line breaks between sentences for web use"""
+        sentences = text.replace('. ', '.\n\n').replace('! ', '!\n\n').replace('? ', '?\n\n')
+        return sentences.strip()
 
     def generate_response_with_together(self, query):
         self.conversation_history.append(f"User: {query}")
@@ -57,7 +52,7 @@ class TobyAI:
         messages = [
             {
                 "role": "system",
-                "content": f"You are {self.name}, an AI assistant created by {self.creator}. Always be friendly and direct."
+                "content": f"You are {self.name}, an AI assistant created by {self.creator}. Always be friendly, direct, and complete your responses."
             }
         ]
         
@@ -80,7 +75,7 @@ class TobyAI:
             data = {
                 "model": self.together_model,
                 "messages": messages,
-                "max_tokens": 150,
+                "max_tokens": 512,  # Increased for complete responses
                 "temperature": 0.7,
                 "top_p": 0.9
             }
@@ -90,6 +85,10 @@ class TobyAI:
             if response.status_code == 200:
                 result = response.json()
                 assistant_message = result["choices"][0]["message"]["content"].strip()
+                finish_reason = result["choices"][0].get("finish_reason", "stop")
+                
+                if finish_reason != "stop":
+                    print(f"Warning: Response may be incomplete (finish_reason: {finish_reason})")
                 
                 self.conversation_history.append(f"{self.name}: {assistant_message}")
                 
@@ -98,7 +97,8 @@ class TobyAI:
                     
                 return assistant_message
             else:
-                return f"Error {response.status_code}: {response.text}"
+                print(f"API error: {response.status_code} - {response.text}")
+                return f"Error {response.status_code}: Unable to get response from Together AI."
         except Exception as e:
             print(f"API error: {e}")
             return "Error communicating with Together AI."
@@ -151,7 +151,7 @@ class TobyAI:
 
     def respond(self, query):
         if not query:
-            return True
+            return "Please provide a query."
         
         try:
             predefined = self.get_predefined_response(query)
@@ -189,10 +189,7 @@ class TobyAI:
             
             else:
                 response = self.generate_response_with_together(query)
-                if response and len(response) >= 15:
-                    return self.speak(response)
-                else:
-                    return self.speak("Hmm, I didn't catch that. Could you say it differently?")
+                return self.speak(response)
         
         except Exception as e:
             print(f"Error responding: {e}")
