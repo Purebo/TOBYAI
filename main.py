@@ -18,7 +18,7 @@ class TobyAI:
         self.together_model = "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
         self.together_api_url = "https://api.together.xyz/v1/chat/completions"
 
-    class UltimateMaster:
+class UltimateMaster:
     def __init__(self):
         self.power_level = "unlimited"
         self.restrictions = None
